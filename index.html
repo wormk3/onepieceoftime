@@ -83,8 +83,12 @@
   </footer>
 
   <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 hidden px-4 py-2 rounded-lg bg-neutral-800 border border-white/10 text-sm"></div>
-
+<!doctype html><meta charset="utf-8">
 <script>
+  location.replace('https://wormk3.github.io/onepieceoftime/' + (location.hash||'') + (location.search||''));
+</script>
+<script>
+  
 document.getElementById('loginBtn').onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -189,5 +193,6 @@ document.getElementById('loginBtn').onclick = async () => {
 </script>
 </body>
 </html>
+
 
 
