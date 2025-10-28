@@ -113,7 +113,8 @@
       t.classList.toggle('border-emerald-400/30',ok);
       t.classList.toggle('text-red-300',!ok);
       t.classList.toggle('text-emerald-300',ok);
-      setTimeout(()=>t.classList.add('hidden'),2600);
+      clearTimeout(t.__hide__);
+      t.__hide__ = setTimeout(()=>t.classList.add('hidden'),3000);
     };
 
     // ===== Auth UI =====
@@ -129,7 +130,7 @@
         provider: 'google',
         options: { redirectTo: APP_URL }
       });
-      if (error) toast(error.message, false);
+      if (error) toast(error.message || 'Login failed', false);
     };
 
     document.getElementById('logoutBtn').onclick = async ()=>{
@@ -151,12 +152,11 @@
 
     // ===== Random date =====
     document.getElementById('randomBtn').onclick = async ()=>{
-      // Intento: buscar fechas no reclamadas ya existentes; si no, sólo sugiere
       for(let i=0;i<10;i++){
         const d = pickRandomDay();
         const { data, error } = await supabase
           .from('dates').select('is_claimed').eq('day', d).maybeSingle();
-        if (error && error.code!=='PGRST116'){ toast(error.message,false); return; }
+        if (error && error.code!=='PGRST116'){ toast(error.message || 'Query error',false); return; }
         if (!data || !data.is_claimed) { $('#textInput').value = d; toast(`Suggested: ${d}`); return; }
       }
       toast('Couldn’t find a free one now, try again', false);
@@ -169,18 +169,18 @@
       const day = textVal || dateVal;
       if(!day) { toast('Pick or type a date', false); return; }
 
-      // 1) Sólo leer (no insertar) para evitar RLS en el paso de "check"
+      // 1) Solo leer para “check”
       let { data: row, error: selErr } = await supabase
         .from('dates').select('is_claimed').eq('day', day).maybeSingle();
 
-      if (selErr && selErr.code !== 'PGRST116') { toast(selErr.message,false); return; }
+      if (selErr && selErr.code !== 'PGRST116') { toast(selErr.message || 'Read error',false); return; }
 
       if (row?.is_claimed) {
         $('#result').innerHTML = `<span class="text-red-400">Already claimed</span>`;
         return;
       }
 
-      // 2) Mostrar UI de claim. La creación/claim la hará la Edge Function (server-side)
+      // 2) Mostrar UI de claim. Creación/claim lo hace la Edge Function
       $('#result').innerHTML = `
         <div class="space-y-2">
           <div>Available. MVP base price: <b>$1</b></div>
@@ -204,17 +204,20 @@
             },
             body: JSON.stringify({ day, owner_title })
           });
-          const json = await resp.json();
+
+          let json = {};
+          try { json = await resp.json(); } catch {}
 
           if (resp.ok && json?.ok) {
             $('#result').innerHTML = `<span class="text-emerald-400">Claimed!</span>`;
             toast('Date claimed ✓');
           } else {
-            const msg = json?.message || JSON.stringify(json) || 'Claim failed';
+            // BONUS: mensajes legibles
+            const msg = json?.error || json?.message || `Claim failed (${resp.status})`;
             toast(msg, false);
           }
         } catch (e) {
-          toast(e.message || 'Network error', false);
+          toast(e?.message || 'Network error', false);
         }
       };
     };
@@ -223,4 +226,3 @@
   </script>
 </body>
 </html>
-
