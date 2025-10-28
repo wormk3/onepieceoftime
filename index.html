@@ -85,6 +85,15 @@
   <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 hidden px-4 py-2 rounded-lg bg-neutral-800 border border-white/10 text-sm"></div>
 
 <script>
+  // Si caemos en la raíz del user, reenviar a la app
+(function () {
+  const isRoot = location.hostname === 'wormk3.github.io' && location.pathname === '/';
+  if (isRoot) {
+    const target = 'https://wormk3.github.io/onepieceoftime/' + (location.hash || '') + (location.search || '');
+    location.replace(target);
+  }
+})();
+
   const SUPABASE_URL = 'https://vvhejqhiceuillazlwlp.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aGVqcWhpY2V1aWxsYXpsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTAzOTMsImV4cCI6MjA3NzA2NjM5M30.deBKXONBB8goQVY61Fy75pTi-iNWjlKIXkbeJBW0aj8';
   const CLAIM_ENDPOINT = `${SUPABASE_URL}/functions/v1/claim_date`;
@@ -170,3 +179,4 @@
 </script>
 </body>
 </html>
+
