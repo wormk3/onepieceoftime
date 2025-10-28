@@ -85,6 +85,16 @@
   <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 hidden px-4 py-2 rounded-lg bg-neutral-800 border border-white/10 text-sm"></div>
 
 <script>
+document.getElementById('loginBtn').onclick = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: 'https://wormk3.github.io/onepieceoftime/'
+    }
+  });
+  if (error) toast(error.message, false);
+};
+
   // Si caemos en la raíz del user, reenviar a la app
 (function () {
   const isRoot = location.hostname === 'wormk3.github.io' && location.pathname === '/';
@@ -179,4 +189,5 @@
 </script>
 </body>
 </html>
+
 
