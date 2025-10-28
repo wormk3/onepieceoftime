@@ -1,90 +1,172 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ONE PIECE OF TIME Alpha</title>
+  <title>ONE PIECE OF TIME — Own a date forever</title>
+  <meta name="description" content="Claim a unique calendar date forever. ONE PIECE OF TIME." />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--brand:#6ee7ff;--brand-2:#a78bfa}
+    html,body{height:100%}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .grid-bg:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at top,rgba(167,139,250,.12),transparent 45%),radial-gradient(ellipse at bottom,rgba(110,231,255,.12),transparent 40%);pointer-events:none}
+  </style>
 </head>
-<body class="bg-neutral-950 text-neutral-100">
-  <div class="max-w-3xl mx-auto p-6 space-y-6">
-    <header class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">ONE PIECE OF TIME</h1>
-      <button id="loginBtn" class="px-3 py-1 rounded bg-indigo-600">Entrar con Google</button>
-    </header>
-
-    <section class="space-y-3">
-      <label class="block text-sm">Elige una fecha</label>
-      <input id="dateInput" type="date" class="w-full bg-neutral-900 border border-neutral-700 rounded p-2" />
-      <input id="textInput" placeholder="o escribe YYYY-MM-DD (acepta 0001-01-01)" class="w-full bg-neutral-900 border border-neutral-700 rounded p-2" />
-      <button id="checkBtn" class="px-4 py-2 bg-emerald-600 rounded">Consultar / Reclamar</button>
-      <div id="result" class="mt-4 text-sm"></div>
-    </section>
+<body class="min-h-screen bg-neutral-950 text-neutral-100">
+  <div class="pointer-events-none absolute inset-x-0 -top-40 h-80 blur-3xl" aria-hidden>
+    <div class="mx-auto h-full max-w-3xl bg-gradient-to-b from-[var(--brand)]/25 via-fuchsia-400/10 to-transparent"></div>
   </div>
 
-  <script>
-    // Tu proyecto Supabase
-    const supabase = window.supabase.createClient(
-      'https://vvhejqhiceuillazlwlp.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aGVqcWhpY2V1aWxsYXpsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTAzOTMsImV4cCI6MjA3NzA2NjM5M30.deBKXONBB8goQVY61Fy75pTi-iNWjlKIXkbeJBW0aj8' // <-- pega aquí tu anon key (de Project Settings → API)
-    );
+  <nav class="sticky top-0 z-40 backdrop-blur bg-neutral-950/70 border-b border-white/5">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] shadow ring-1 ring-white/10 grid place-items-center text-neutral-900 font-black">⏳</div>
+        <span class="font-semibold tracking-tight">ONE PIECE OF TIME</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="loginBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm">Sign in with Google</button>
+        <button id="logoutBtn" class="hidden px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-sm">Sign out</button>
+      </div>
+    </div>
+  </nav>
 
-    // Login con Google
-    document.getElementById('loginBtn').onclick = async () => {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-      if (error) alert(error.message);
-    };
+  <header class="relative overflow-hidden grid-bg">
+    <div class="max-w-6xl mx-auto px-4 py-16 grid lg:grid-cols-2 gap-10 items-center">
+      <div>
+        <h1 class="text-4xl md:text-5xl font-extrabold leading-tight">
+          Own <span class="bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] bg-clip-text text-transparent">a date</span> forever
+        </h1>
+        <p class="mt-4 text-neutral-300 max-w-xl">A marketplace where each calendar day can have an owner. Claim yours, give it a title, and resell it anytime.</p>
+        <div class="mt-6 flex flex-wrap gap-3 text-xs text-neutral-400">
+          <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">Supabase + Edge Functions</span>
+          <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">RLS Policies</span>
+          <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">No blockchain (MVP)</span>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl">
+        <h2 class="font-semibold mb-3">Claim a date</h2>
+        <div class="space-y-3">
+          <label class="block text-sm text-neutral-300">Pick a date</label>
+          <input id="dateInput" type="date" class="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/50" />
+          <input id="textInput" placeholder="or type YYYY-MM-DD (allows 0001-01-01)" class="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/50" />
+          <div class="flex gap-2">
+            <button id="randomBtn" class="flex-1 px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700">Random available date</button>
+            <button id="checkBtn" class="flex-1 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Check / Claim</button>
+          </div>
+          <div id="result" class="mt-2 text-sm min-h-6"></div>
+        </div>
+      </div>
+    </div>
+  </header>
 
-    // Buscar o reclamar fecha
-    document.getElementById('checkBtn').onclick = async () => {
-      const dateVal = document.getElementById('dateInput').value;
-      const textVal = document.getElementById('textInput').value.trim();
-      const day = textVal || dateVal;
-      if (!day) return alert('Selecciona o escribe una fecha');
+  <section class="max-w-6xl mx-auto px-4 py-14 grid md:grid-cols-3 gap-6">
+    <div class="p-5 rounded-2xl border border-white/10 bg-white/5">
+      <h3 class="font-semibold">Symbolic ownership</h3>
+      <p class="mt-2 text-sm text-neutral-300">Each date is unique. Claim it, name it, and show it on your profile.</p>
+    </div>
+    <div class="p-5 rounded-2xl border border-white/10 bg-white/5">
+      <h3 class="font-semibold">Built‑in resale</h3>
+      <p class="mt-2 text-sm text-neutral-300">List your date on the marketplace and receive offers.</p>
+    </div>
+    <div class="p-5 rounded-2xl border border-white/10 bg-white/5">
+      <h3 class="font-semibold">Country‑aware history</h3>
+      <p class="mt-2 text-sm text-neutral-300">We show historic titles by country + your custom title.</p>
+    </div>
+  </section>
 
-      const { data: dateRow, error: upErr } = await supabase
-        .from('dates')
-        .upsert({ day }, { onConflict: 'day' })
-        .select('*')
-        .single();
-      if (upErr) return alert(upErr.message);
+  <footer class="border-t border-white/5 py-8 text-center text-xs text-neutral-400">
+    © <span id="year"></span> ONE PIECE OF TIME — OPT. Built with love in Toronto.
+  </footer>
 
-      if (dateRow.is_claimed) {
-        document.getElementById('result').innerHTML = `<span class="text-red-400">Fecha reclamada</span>`;
-        return;
-      }
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 hidden px-4 py-2 rounded-lg bg-neutral-800 border border-white/10 text-sm"></div>
 
-      document.getElementById('result').innerHTML = `
-        <div class="space-y-2">
-          <div>Disponible. Precio base MVP: <b>$1</b></div>
-          <input id="ownerTitle" placeholder="Título del dueño (opcional)" class="w-full bg-neutral-900 border border-neutral-700 rounded p-2" />
-          <button id="claim" class="px-3 py-1 rounded bg-emerald-700">Reclamar ahora</button>
-        </div>`;
+<script>
+  const SUPABASE_URL = 'https://vvhejqhiceuillazlwlp.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aGVqcWhpY2V1aWxsYXpsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTAzOTMsImV4cCI6MjA3NzA2NjM5M30.deBKXONBB8goQVY61Fy75pTi-iNWjlKIXkbeJBW0aj8';
+  const CLAIM_ENDPOINT = `${SUPABASE_URL}/functions/v1/claim_date`;
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      document.getElementById('claim').onclick = async () => {
-        const session = (await supabase.auth.getSession()).data.session;
-        if (!session) return alert('Inicia sesión primero');
+  const $ = (q)=>document.querySelector(q);
+  const toast = (msg, ok=true)=>{const t=$('#toast');t.textContent=msg;t.classList.remove('hidden');t.classList.toggle('border-red-400/40',!ok);t.classList.toggle('border-emerald-400/30',ok);t.classList.toggle('text-red-300',!ok);t.classList.toggle('text-emerald-300',ok);setTimeout(()=>t.classList.add('hidden'),2600)}
 
-        const owner_title = document.getElementById('ownerTitle').value;
+  async function refreshAuthUI(){
+    const { data } = await supabase.auth.getSession();
+    const logged = !!data.session;
+    $('#loginBtn').classList.toggle('hidden', logged);
+    $('#logoutBtn').classList.toggle('hidden', !logged);
+  }
+  $('#loginBtn').onclick = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    if (error) toast(error.message, false); else toast('Signing in…');
+  };
+  $('#logoutBtn').onclick = async ()=>{ await supabase.auth.signOut(); refreshAuthUI(); toast('Signed out'); };
+  supabase.auth.onAuthStateChange(()=> refreshAuthUI());
+  refreshAuthUI();
 
-        const resp = await fetch('https://vvhejqhiceuillazlwlp.supabase.co/functions/v1/claim_date', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ day, owner_title })
-        });
+  const pickRandomDay = ()=>{
+    const year = 1000 + Math.floor(Math.random()*1026); // 1000–2025 demo
+    const month = 1 + Math.floor(Math.random()*12);
+    const day = 1 + Math.floor(Math.random()*28);
+    return `${year.toString().padStart(4,'0')}-${month.toString().padStart(2,'0')}-${day.toString().padStart(2,'0')}`;
+  }
 
-        const json = await resp.json();
-        if (json.ok) {
-          document.getElementById('result').innerHTML = `<span class="text-emerald-400">¡Reclamada!</span>`;
-        } else {
-          alert(JSON.stringify(json));
-        }
-      };
-    };
-  </script>
+  $('#randomBtn').onclick = async ()=>{
+    for(let i=0;i<10;i++){
+      const d = pickRandomDay();
+      const { data, error } = await supabase.from('dates').select('*').eq('day', d).maybeSingle();
+      if(error && error.code!=='PGRST116'){ toast(error.message,false); return; }
+      if(!data || !data.is_claimed){ $('#textInput').value = d; toast(`Suggested: ${d}`); return; }
+    }
+    toast('Couldn’t find a free one now, try again', false);
+  }
+
+  $('#checkBtn').onclick = async () => {
+    const dateVal = $('#dateInput').value;
+    const textVal = $('#textInput').value.trim();
+    const day = textVal || dateVal;
+    if(!day) { toast('Pick or type a date', false); return; }
+
+    let { data: dateRow, error: selErr } = await supabase
+      .from('dates').select('*').eq('day', day).maybeSingle();
+    if (selErr && selErr.code !== 'PGRST116') { toast(selErr.message,false); return; }
+
+    if(!dateRow){
+      const { data: inserted, error: insErr } = await supabase
+        .from('dates').insert({ day }).select('*').single();
+      if (insErr) { toast(insErr.message,false); return; }
+      dateRow = inserted;
+    }
+
+    if(dateRow.is_claimed){ $('#result').innerHTML = `<span class="text-red-400">Already claimed</span>`; return; }
+
+    $('#result').innerHTML = `
+      <div class="space-y-2">
+        <div>Available. MVP base price: <b>$1</b></div>
+        <input id="ownerTitle" placeholder="Owner title (optional)" class="w-full bg-neutral-900 border border-neutral-700 rounded p-2" />
+        <button id="claim" class="px-3 py-2 rounded bg-emerald-700 hover:bg-emerald-600">Claim now</button>
+      </div>`;
+
+    $('#claim').onclick = async ()=>{
+      const session = (await supabase.auth.getSession()).data.session;
+      if(!session){ toast('Sign in first', false); return; }
+      const owner_title = document.getElementById('ownerTitle').value;
+
+      const resp = await fetch(CLAIM_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ day, owner_title })
+      });
+      const json = await resp.json();
+      if(json.ok){ $('#result').innerHTML = `<span class="text-emerald-400">Claimed!</span>`; toast('Date claimed ✓'); }
+      else { toast(JSON.stringify(json), false); }
+    }
+  }
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
 </body>
 </html>
