@@ -13,7 +13,9 @@
     :root{--brand:#6ee7ff;--brand-2:#a78bfa}
     html,body{height:100%}
     body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-    .grid-bg:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at top,rgba(167,139,250,.12),transparent 45%),radial-gradient(ellipse at bottom,rgba(110,231,255,.12),transparent 40%);pointer-events:none}
+    .grid-bg:before{content:"";position:absolute;inset:0;background:
+      radial-gradient(ellipse at top,rgba(167,139,250,.12),transparent 45%),
+      radial-gradient(ellipse at bottom,rgba(110,231,255,.12),transparent 40%);pointer-events:none}
   </style>
 
   <!-- Root-guard: si por error vuelves a la raíz del user, manda a /onepieceoftime/ -->
@@ -208,11 +210,23 @@
           let json = {};
           try { json = await resp.json(); } catch {}
 
+          // ==== FIX CLAVE: manejar 409 / Already claimed ====
+          if (resp.status === 409 || json?.message === 'Already claimed') {
+            $('#result').innerHTML = `<span class="text-red-400">Already claimed</span>`;
+            toast('Already claimed', false);
+            return;
+          }
+
           if (resp.ok && json?.ok) {
             $('#result').innerHTML = `<span class="text-emerald-400">Claimed!</span>`;
             toast('Date claimed ✓');
+
+            // Opcional: vuelve a consultar para que, si reintentas, ya aparezca como tomado
+            const again = await supabase.from('dates').select('is_claimed').eq('day', day).maybeSingle();
+            if (again.data?.is_claimed) {
+              $('#result').innerHTML = `<span class="text-emerald-400">Claimed!</span>`;
+            }
           } else {
-            // BONUS: mensajes legibles
             const msg = json?.error || json?.message || `Claim failed (${resp.status})`;
             toast(msg, false);
           }
