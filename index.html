@@ -119,6 +119,33 @@
       t.__hide__ = setTimeout(()=>t.classList.add('hidden'),3000);
     };
 
+    // ===== Utils =====
+    function toIsoDate(input){
+      if(!input) return null;
+      const s = input.trim();
+      // YYYY-MM-DD
+      let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+      if(m){
+        const y=+m[1], mo=+m[2], d=+m[3];
+        if (mo>=1 && mo<=12 && d>=1 && d<=31) return `${m[1]}-${m[2]}-${m[3]}`;
+        return null;
+      }
+      // MM/DD/YYYY
+      m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+      if(m){
+        const mo = String(+m[1]).padStart(2,'0');
+        const d  = String(+m[2]).padStart(2,'0');
+        return `${m[3]}-${mo}-${d}`;
+      }
+      return null;
+    }
+
+    function setBusy(btn, busy){
+      btn.disabled = !!busy;
+      btn.classList.toggle('opacity-60', !!busy);
+      btn.classList.toggle('cursor-not-allowed', !!busy);
+    }
+
     // ===== Auth UI =====
     async function refreshAuthUI(){
       const { data } = await supabase.auth.getSession();
@@ -144,6 +171,23 @@
     supabase.auth.onAuthStateChange(()=> refreshAuthUI());
     refreshAuthUI();
 
+    // ===== Inputs: sync & reset =====
+    const dateInput = document.getElementById('dateInput');
+    const textInput = document.getElementById('textInput');
+    const resultBox = document.getElementById('result');
+    function clearResult(){ resultBox.innerHTML=''; }
+
+    dateInput.addEventListener('change', ()=>{
+      const iso = toIsoDate(dateInput.value);
+      textInput.value = iso || '';
+      clearResult();
+    });
+    textInput.addEventListener('input', ()=>{
+      const iso = toIsoDate(textInput.value);
+      dateInput.value = iso || '';
+      clearResult();
+    });
+
     // ===== Helpers =====
     const pickRandomDay = ()=>{
       const year = 1000 + Math.floor(Math.random()*1026); // 1000–2025 demo
@@ -154,86 +198,112 @@
 
     // ===== Random date =====
     document.getElementById('randomBtn').onclick = async ()=>{
-      for(let i=0;i<10;i++){
-        const d = pickRandomDay();
-        const { data, error } = await supabase
-          .from('dates').select('is_claimed').eq('day', d).maybeSingle();
-        if (error && error.code!=='PGRST116'){ toast(error.message || 'Query error',false); return; }
-        if (!data || !data.is_claimed) { $('#textInput').value = d; toast(`Suggested: ${d}`); return; }
+      const btn = document.getElementById('randomBtn');
+      setBusy(btn, true);
+      try{
+        for(let i=0;i<10;i++){
+          const d = pickRandomDay();
+          const { data, error } = await supabase
+            .from('dates').select('is_claimed').eq('day', d).maybeSingle();
+          if (error && error.code!=='PGRST116'){ toast(error.message || 'Query error',false); return; }
+          if (!data || !data.is_claimed) { 
+            textInput.value = d; 
+            dateInput.value = d;
+            toast(`Suggested: ${d}`); 
+            clearResult();
+            return; 
+          }
+        }
+        toast('Couldn’t find a free one now, try again', false);
+      } finally {
+        setBusy(btn, false);
       }
-      toast('Couldn’t find a free one now, try again', false);
     };
 
     // ===== Check / Claim flow =====
     document.getElementById('checkBtn').onclick = async () => {
-      const dateVal = $('#dateInput').value;
-      const textVal = $('#textInput').value.trim();
-      const day = textVal || dateVal;
-      if(!day) { toast('Pick or type a date', false); return; }
+      const btn = document.getElementById('checkBtn');
+      setBusy(btn, true);
+      try{
+        const fromDate = toIsoDate(dateInput.value);
+        const fromText = toIsoDate(textInput.value);
+        const day = fromText || fromDate;
+        if(!day) { toast('Pick or type a valid date', false); return; }
+        // normaliza ambos inputs
+        textInput.value = day; dateInput.value = day;
 
-      // 1) Solo leer para “check”
-      let { data: row, error: selErr } = await supabase
-        .from('dates').select('is_claimed').eq('day', day).maybeSingle();
+        // 1) Solo leer para “check”
+        let { data: row, error: selErr } = await supabase
+          .from('dates').select('is_claimed').eq('day', day).maybeSingle();
 
-      if (selErr && selErr.code !== 'PGRST116') { toast(selErr.message || 'Read error',false); return; }
+        if (selErr && selErr.code !== 'PGRST116') { toast(selErr.message || 'Read error',false); return; }
 
-      if (row?.is_claimed) {
-        $('#result').innerHTML = `<span class="text-red-400">Already claimed</span>`;
-        return;
-      }
-
-      // 2) Mostrar UI de claim. Creación/claim lo hace la Edge Function
-      $('#result').innerHTML = `
-        <div class="space-y-2">
-          <div>Available. MVP base price: <b>$1</b></div>
-          <input id="ownerTitle" placeholder="Owner title (optional)" class="w-full bg-neutral-900 border border-neutral-700 rounded p-2" />
-          <button id="claim" class="px-3 py-2 rounded bg-emerald-700 hover:bg-emerald-600">Claim now</button>
-        </div>`;
-
-      document.getElementById('claim').onclick = async ()=>{
-        const { data } = await supabase.auth.getSession();
-        const session = data.session;
-        if(!session){ toast('Sign in first', false); return; }
-
-        const owner_title = (document.getElementById('ownerTitle').value || '').trim();
-
-        try {
-          const resp = await fetch(CLAIM_ENDPOINT, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ day, owner_title })
-          });
-
-          let json = {};
-          try { json = await resp.json(); } catch {}
-
-          // ==== FIX CLAVE: manejar 409 / Already claimed ====
-          if (resp.status === 409 || json?.message === 'Already claimed') {
-            $('#result').innerHTML = `<span class="text-red-400">Already claimed</span>`;
-            toast('Already claimed', false);
-            return;
-          }
-
-          if (resp.ok && json?.ok) {
-            $('#result').innerHTML = `<span class="text-emerald-400">Claimed!</span>`;
-            toast('Date claimed ✓');
-
-            // Opcional: vuelve a consultar para que, si reintentas, ya aparezca como tomado
-            const again = await supabase.from('dates').select('is_claimed').eq('day', day).maybeSingle();
-            if (again.data?.is_claimed) {
-              $('#result').innerHTML = `<span class="text-emerald-400">Claimed!</span>`;
-            }
-          } else {
-            const msg = json?.error || json?.message || `Claim failed (${resp.status})`;
-            toast(msg, false);
-          }
-        } catch (e) {
-          toast(e?.message || 'Network error', false);
+        if (row?.is_claimed) {
+          resultBox.innerHTML = `<span class="text-red-400">Already claimed</span>`;
+          return;
         }
-      };
+
+        // 2) Mostrar UI de claim. Creación/claim lo hace la Edge Function
+        resultBox.innerHTML = `
+          <div class="space-y-2">
+            <div>Available. MVP base price: <b>$1</b></div>
+            <input id="ownerTitle" maxlength="120" placeholder="Owner title (optional)" class="w-full bg-neutral-900 border border-neutral-700 rounded p-2" />
+            <button id="claim" class="px-3 py-2 rounded bg-emerald-700 hover:bg-emerald-600">Claim now</button>
+          </div>`;
+
+        document.getElementById('claim').onclick = async ()=>{
+          const { data } = await supabase.auth.getSession();
+          const session = data.session;
+          if(!session){ toast('Sign in first', false); return; }
+
+          const owner_title = (document.getElementById('ownerTitle').value || '').trim();
+          const claimBtn = document.getElementById('claim');
+          setBusy(claimBtn, true);
+
+          try {
+            const resp = await fetch(CLAIM_ENDPOINT, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ day, owner_title })
+            });
+
+            let json = {};
+            try { json = await resp.json(); } catch {}
+
+            // Manejo claro de conflicto
+            if (resp.status === 409 || json?.message === 'Already claimed') {
+              resultBox.innerHTML = `<span class="text-red-400">Already claimed</span>`;
+              toast('Already claimed', false);
+              return;
+            }
+
+            if (resp.ok && json?.ok) {
+              // Re-consulta para dejar el estado consistente
+              const again = await supabase
+                .from('dates').select('is_claimed').eq('day', day).maybeSingle();
+
+              if (again?.data?.is_claimed) {
+                resultBox.innerHTML = `<span class="text-emerald-400">Claimed!</span>`;
+              } else {
+                resultBox.innerHTML = `<span class="text-emerald-400">Claimed!</span>`;
+              }
+              toast('Date claimed ✓');
+            } else {
+              const msg = json?.error || json?.message || `Claim failed (${resp.status})`;
+              toast(msg, false);
+            }
+          } catch (e) {
+            toast(e?.message || 'Network error', false);
+          } finally {
+            setBusy(claimBtn, false);
+          }
+        };
+      } finally {
+        setBusy(btn, false);
+      }
     };
 
     document.getElementById('year').textContent = new Date().getFullYear();
