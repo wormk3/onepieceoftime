@@ -3,56 +3,269 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OPT — Time Shards</title>
+  <title>ONE PIECE OF TIME — Time Shards (MVP)</title>
+  <meta name="description" content="Claim a unique calendar date forever. ONE PIECE OF TIME." />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--brand:#6ee7ff;--brand-2:#a78bfa}
+    html,body{height:100%}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    .grid-bg:before{content:"";position:absolute;inset:0;background:
+      radial-gradient(ellipse at top,rgba(167,139,250,.12),transparent 45%),
+      radial-gradient(ellipse at bottom,rgba(110,231,255,.12),transparent 40%);pointer-events:none}
+    /* Shard visual mínimo */
+    .shard{
+      width:260px;height:320px;position:relative;border:1px solid rgba(255,255,255,.15);
+      background: radial-gradient(circle at 30% 30%, rgba(255,220,120,.18), rgba(0,0,0,.92));
+      clip-path: polygon(10% 5%, 90% 0, 100% 40%, 70% 100%, 5% 85%, 0 30%);
+      box-shadow: 0 0 30px rgba(255,215,0,.09) inset, 0 0 18px rgba(255,215,0,.07);
+    }
+    .core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:68px;height:68px;border-radius:50%;
+      background: radial-gradient(circle, rgba(255,230,120,.95), rgba(255,140,0,.35), transparent);
+      filter: blur(0.5px);animation: pulse 2.8s ease-in-out infinite;
+    }
+    @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(0.9)}50%{transform:translate(-50%,-50%) scale(1.05)}}
+    .rank-L4{ outline:1px solid rgba(255,215,0,.35); }
+    .rank-E3{ box-shadow: 0 0 26px rgba(255,80,0,.12) inset, 0 0 12px rgba(255,80,0,.1) }
+    .rank-R2{ box-shadow: 0 0 26px rgba(120,200,255,.12) inset, 0 0 12px rgba(120,200,255,.1) }
+    .rank-C1{ box-shadow: 0 0 26px rgba(180,180,180,.10) inset, 0 0 12px rgba(180,180,180,.08) }
+    .energy-FIRE .core{ background: radial-gradient(circle, rgba(255,210,120,.95), rgba(255,90,0,.40), transparent); }
+    .energy-AIR .core{ background: radial-gradient(circle, rgba(180,240,255,.95), rgba(100,200,255,.35), transparent); }
+    .energy-WATER .core{ background: radial-gradient(circle, rgba(160,210,255,.95), rgba(0,120,255,.35), transparent); }
+    .energy-EARTH .core{ background: radial-gradient(circle, rgba(230,210,160,.95), rgba(120,80,10,.35), transparent); }
+    .energy-COSMOS .core{ background: radial-gradient(circle, rgba(200,160,255,.95), rgba(120,0,255,.35), transparent); }
+  </style>
 </head>
-<body class="bg-black text-white font-[Inter] flex flex-col items-center min-h-screen p-8">
+<body class="min-h-screen bg-neutral-950 text-neutral-100">
+  <div class="pointer-events-none absolute inset-x-0 -top-40 h-80 blur-3xl" aria-hidden>
+    <div class="mx-auto h-full max-w-3xl bg-gradient-to-b from-[var(--brand)]/25 via-fuchsia-400/10 to-transparent"></div>
+  </div>
 
-  <h1 class="text-3xl font-bold mb-6 text-cyan-300">ONE PIECE OF TIME — Time Shards</h1>
-  <div id="grid" class="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3"></div>
+  <nav class="sticky top-0 z-40 backdrop-blur bg-neutral-950/70 border-b border-white/5">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] shadow ring-1 ring-white/10 grid place-items-center text-neutral-900 font-black">⏳</div>
+        <span class="font-semibold tracking-tight">ONE PIECE OF TIME</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="loginBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm">Sign in with Google</button>
+        <button id="logoutBtn" class="hidden px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-sm">Sign out</button>
+      </div>
+    </div>
+  </nav>
+
+  <header class="relative overflow-hidden grid-bg">
+    <div class="max-w-6xl mx-auto px-4 py-16 grid lg:grid-cols-2 gap-10 items-center">
+      <div>
+        <h1 class="text-4xl md:text-5xl font-extrabold leading-tight">
+          Own <span class="bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] bg-clip-text text-transparent">a date</span> forever
+        </h1>
+        <p class="mt-4 text-neutral-300 max-w-xl">Each day is a <b>Time Shard</b>. Claim it, name it, and become its symbolic owner.</p>
+        <div class="mt-6 flex flex-wrap gap-3 text-xs text-neutral-400">
+          <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">Supabase + RLS</span>
+          <span class="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">No blockchain (MVP)</span>
+        </div>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl">
+        <h2 class="font-semibold mb-3">Check / claim a day</h2>
+        <div class="space-y-3">
+          <label class="block text-sm text-neutral-300">Pick a seeded date</label>
+          <input id="dateInput" type="date" class="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/50" />
+          <input id="textInput" placeholder="or type YYYY-MM-DD" class="w-full bg-neutral-900 border border-neutral-700 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/50" />
+          <div class="flex gap-2">
+            <button id="randomBtn" class="flex-1 px-3 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700">Random available</button>
+            <button id="checkBtn" class="flex-1 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500">Check / Claim</button>
+          </div>
+          <div id="result" class="mt-2 text-sm min-h-6"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="max-w-6xl mx-auto px-4 py-14">
+    <h3 class="font-semibold mb-4">Seeded Time Shards</h3>
+    <div id="grid" class="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3"></div>
+  </section>
+
+  <footer class="border-t border-white/5 py-8 text-center text-xs text-neutral-400">
+    © <span id="year"></span> ONE PIECE OF TIME — OPT. Built with love in Toronto.
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 hidden px-4 py-2 rounded-lg bg-neutral-800 border border-white/10 text-sm"></div>
 
   <script>
-    // 🔧 Configura tu conexión
-    const SUPABASE_URL = "https://vvhejqhiceuillazlwlp.supabase.co";       // ejemplo: https://abcd.supabase.co
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aGVqcWhpY2V1aWxsYXpsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTAzOTMsImV4cCI6MjA3NzA2NjM5M30.deBKXONBB8goQVY61Fy75pTi-iNWjlKIXkbeJBW0aj8";              // copia de tu Supabase
-    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ===== Config (TU PROYECTO REAL) =====
+    const SUPABASE_URL = 'https://vvhejqhiceuillazlwlp.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2aGVqcWhpY2V1aWxsYXpsd2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTAzOTMsImV4cCI6MjA3NzA2NjM5M30.deBKXONBB8goQVY61Fy75pTi-iNWjlKIXkbeJBW0aj8';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // 🪄 Función para crear el fragmento visual
-    const shardHTML = (s) => `
-      <div class="shard relative border border-cyan-400/20 rounded-xl p-4 bg-gradient-to-b from-zinc-900 to-black hover:scale-[1.03] transition-all">
-        <div class="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,rgba(0,255,255,0.3),transparent_70%)]"></div>
-        <h2 class="text-xl font-semibold text-cyan-300 mb-2">${s.label}</h2>
-        <p class="text-sm text-gray-400">${s.dt}</p>
-        <p class="mt-2 text-sm">Rango: <b>${s.rank}</b></p>
-        <p class="text-sm">Energía: ${s.energy}</p>
-        <p class="text-xs text-gray-400 mt-2 break-all">${s.code}</p>
-        <button onclick="claim('${s.dt}')" class="mt-4 px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold rounded-md text-sm">Reclamar</button>
-      </div>
-    `;
+    const $ = (q)=>document.querySelector(q);
+    const toast = (msg, ok=true)=>{
+      const t=$('#toast');
+      t.textContent=msg;
+      t.classList.remove('hidden');
+      t.style.borderColor = ok ? 'rgba(16,185,129,.5)' : 'rgba(248,113,113,.6)';
+      t.style.color = ok ? '#86efac' : '#fca5a5';
+      clearTimeout(t.__hide__);
+      t.__hide__ = setTimeout(()=>t.classList.add('hidden'),3000);
+    };
 
-    // ⚡ Mostrar fragmentos
-    async function loadShards() {
-      const { data, error } = await db.from('shards').select('*').order('dt');
-      if (error) return alert(error.message);
-      document.getElementById('grid').innerHTML = data.map(shardHTML).join('');
+    // ===== Utils =====
+    function toIsoDate(input){
+      if(!input) return null;
+      const s = input.trim();
+      let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+      if(m){ return `${m[1]}-${m[2]}-${m[3]}`; }
+      m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+      if(m){
+        const mo = String(+m[1]).padStart(2,'0');
+        const d  = String(+m[2]).padStart(2,'0');
+        return `${m[3]}-${mo}-${d}`;
+      }
+      return null;
+    }
+    function setBusy(btn, busy){
+      btn.disabled = !!busy;
+      btn.classList.toggle('opacity-60', !!busy);
+      btn.classList.toggle('cursor-not-allowed', !!busy);
     }
 
-    // 💎 Reclamar (MVP sin auth)
-    async function claim(dt) {
-      const nombre = prompt("Tu nombre para reclamar este fragmento:");
-      if (!nombre) return;
-      const { error } = await db.from('shards').update({
-        owner_name: nombre,
-        purchased_at: new Date().toISOString()
-      }).eq('dt', dt).is('owner_name', null);
-      if (error) alert(error.message);
-      else alert("✅ Fragmento reclamado exitosamente.");
-      loadShards();
+    // ===== Auth (para el claim con nombre del usuario en el futuro) =====
+    async function refreshAuthUI(){
+      const { data } = await supabase.auth.getSession();
+      const logged = !!data.session;
+      $('#loginBtn').classList.toggle('hidden', logged);
+      $('#logoutBtn').classList.toggle('hidden', !logged);
     }
+    document.getElementById('loginBtn').onclick = async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: location.href }
+      });
+      if (error) toast(error.message || 'Login failed', false);
+    };
+    document.getElementById('logoutBtn').onclick = async ()=>{
+      await supabase.auth.signOut();
+      refreshAuthUI();
+      toast('Signed out');
+    };
+    supabase.auth.onAuthStateChange(()=> refreshAuthUI());
+    refreshAuthUI();
 
-    loadShards();
+    // ===== Inputs sync =====
+    const dateInput = document.getElementById('dateInput');
+    const textInput = document.getElementById('textInput');
+    const resultBox = document.getElementById('result');
+    function clearResult(){ resultBox.innerHTML=''; }
+    dateInput.addEventListener('change', ()=>{
+      const iso = toIsoDate(dateInput.value);
+      textInput.value = iso || '';
+      clearResult();
+    });
+    textInput.addEventListener('input', ()=>{
+      const iso = toIsoDate(textInput.value);
+      dateInput.value = iso || '';
+      clearResult();
+    });
+
+    // ===== Grid (lista los shards sembrados) =====
+    const GRID = document.getElementById('grid');
+    function shardCard(s){
+      return `
+        <div class="shard relative p-4 rank-${s.rank} energy-${s.energy}">
+          <div class="core"></div>
+          <div class="absolute left-3 right-3 top-3 text-sm font-semibold">${s.label}</div>
+          <div class="absolute left-3 right-3 bottom-10 text-xs text-neutral-300 break-all">${s.code}</div>
+          <div class="absolute left-3 right-3 bottom-3 text-xs ${s.owner_name ? 'text-emerald-300' : 'text-neutral-400'}">
+            ${s.dt} — ${s.owner_name ? '👑 Owner: '+s.owner_name : 'Available'}
+          </div>
+        </div>`;
+    }
+    async function loadGrid(){
+      const { data, error } = await supabase.from('shards').select('*').order('dt');
+      if (error) { toast(error.message, false); return; }
+      GRID.innerHTML = data.map(shardCard).join('');
+    }
+    loadGrid();
+
+    // ===== Random available (de los seed) =====
+    document.getElementById('randomBtn').onclick = async ()=>{
+      const btn = document.getElementById('randomBtn');
+      setBusy(btn, true);
+      try{
+        const { data, error } = await supabase
+          .from('shards')
+          .select('dt, owner_name')
+          .is('owner_name', null);
+        if (error) { toast(error.message, false); return; }
+        if (!data || !data.length){ toast('No available seeded dates right now', false); return; }
+        const pick = data[Math.floor(Math.random()*data.length)].dt;
+        textInput.value = pick; dateInput.value = pick;
+        toast(`Suggested: ${pick}`);
+        clearResult();
+      } finally { setBusy(btn,false); }
+    };
+
+    // ===== Check / Claim =====
+    document.getElementById('checkBtn').onclick = async ()=>{
+      const btn = document.getElementById('checkBtn');
+      setBusy(btn, true);
+      try{
+        const fromDate = toIsoDate(dateInput.value);
+        const fromText = toIsoDate(textInput.value);
+        const day = fromText || fromDate;
+        if(!day){ toast('Pick or type a valid date', false); return; }
+
+        // 1) Buscar el shard en la tabla
+        let { data: shard, error: selErr } = await supabase
+          .from('shards')
+          .select('*').eq('dt', day).maybeSingle();
+
+        if (selErr && selErr.code !== 'PGRST116'){ toast(selErr.message || 'Read error', false); return; }
+
+        if (!shard){
+          resultBox.innerHTML = `<span class="text-amber-300">This date is not seeded yet in MVP.</span>`;
+          return;
+        }
+
+        if (shard.owner_name){
+          resultBox.innerHTML = `<span class="text-red-400">Already claimed by ${shard.owner_name}</span>`;
+          return;
+        }
+
+        // 2) UI de claim
+        resultBox.innerHTML = `
+          <div class="space-y-2">
+            <div>Available. Base price (MVP): <b>$1</b></div>
+            <input id="ownerName" maxlength="60" placeholder="Your name (public)" class="w-full bg-neutral-900 border border-neutral-700 rounded p-2" />
+            <button id="claimNow" class="px-3 py-2 rounded bg-emerald-700 hover:bg-emerald-600">Claim now</button>
+          </div>`;
+
+        document.getElementById('claimNow').onclick = async ()=>{
+          const owner = (document.getElementById('ownerName').value || '').trim();
+          if (!owner){ toast('Write your name', false); return; }
+
+          const { error: upErr } = await supabase
+            .from('shards')
+            .update({ owner_name: owner, purchased_at: new Date().toISOString() })
+            .eq('dt', day)
+            .is('owner_name', null); // Respetar RLS
+
+          if (upErr){ toast(upErr.message || 'Claim failed', false); return; }
+
+          toast('Date claimed ✓');
+          resultBox.innerHTML = `<span class="text-emerald-400">Claimed by ${owner}</span>`;
+          loadGrid();
+        };
+      } finally { setBusy(btn, false); }
+    };
+
+    document.getElementById('year').textContent = new Date().getFullYear();
   </script>
-
 </body>
 </html>
